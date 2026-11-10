@@ -6,7 +6,7 @@ import urllib.request
 # --- SOZLAMALAR ---
 TOKEN = "9273806306:AAHC-HbWWp5hJbZXZssGYl-nk_TDNOCLGIg"  # O'z bot tokeningizni yozing
 ADMIN_ID = 8824238939  # O'z Telegram ID raqamingizni yozing
-CHANNEL_ID = "https://t.me/Hammasi_Yaxshi_008"  # Kanal username'ingiz
+CHANNEL_ID = "@Hammasi_Yaxshi_008  # Kanal username'ingiz
 
 # Tasdiqlashni kutayotgan vaqtinchalik ma'lumot
 pending_content = {"type": "text", "content": "", "media": None}
