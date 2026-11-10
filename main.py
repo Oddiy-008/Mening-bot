@@ -1,15 +1,41 @@
 import datetime
 import json
 import random
+import time
 import urllib.request
 
 # --- SOZLAMALAR ---
-TOKEN = "9273806306:AAHC-HbWWp5hJbZXZssGYl-nk_TDNOCLGIg"  # O'z bot tokeningizni yozing
-ADMIN_ID = 8824238939  # O'z Telegram ID raqamingizni yozing
-CHANNEL_ID = "@Hammasi_Yaxshi_008"  # Kanal username"ingiz
+TOKEN = "9273806306:AAHC-HbWWp5hJbZXZssGY1-nk_TDNOCLGig"
+ADMIN_ID = 8824238939
+CHANNEL_ID = "@Hammasi_Yaxshi_008"
 
-# Tasdiqlashni kutayotgan vaqtinchalik ma'lumot
+# 18+ yoshdagilar uchun chiroyli osoyishta va falsafiy videolar uchun matnli sarlavhalar
+CALM_VIDEOS = [
+    (
+        "✨ Osoyishta va falsafiy parcha (18+): Ba'zida dunyoning shovqinidan"
+        " qochib, faqat o'zing bilan qolish — eng buyuk huzurdir..."
+    ),
+    (
+        "✨ Osoyishta va falsafiy parcha (18+): Haqiqiy go'zallik — bu qalbning"
+        " tinchligi va o'ylantiradigan og'ir haqiqatlardir."
+    ),
+]
+
+# 18+ yoshdagilar uchun kuchli motivatsion kino + anime videolari uchun matnli sarlavhalar
+MOTIVATIONAL_VIDEOS = [
+    (
+        "🔥 Motivatsion Kino & Anime parcha (18+): Yiqilishdan qo'rqma! Asosiysi"
+        " — har safar yiqilganda o'rningdan ikki barobar kuchli bo'lib turishdir."
+    ),
+    (
+        "🔥 Motivatsion Kino & Anime parcha (18+): Hayot senga qarshi chiqqanda,"
+        " sen unga o'z qoidalaringni o'tkazishni o'rgan."
+    ),
+]
+
+# Vaqtinchalik xotira
 pending_content = {"type": "text", "content": "", "media": None}
+last_auto_story_day = ""
 
 
 def send_telegram(method, data):
@@ -23,273 +49,243 @@ def send_telegram(method, data):
     with urllib.request.urlopen(req, timeout=10) as response:
       return json.loads(response.read().decode("utf-8"))
   except Exception as e:
-    print(f"API xatoligi ({method}): {e}")
+    print(f"Xatolik: {e}")
     return None
 
 
-# Oddiy matnni chiroyli maxsus shriftga o'tkazish
-def convert_to_fancy_font(text):
-  normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  fancy = "𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃𝓐𝓑𝓒𝘿𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩"
-  trans = str.maketrans(normal, fancy)
-  return text.translate(trans)
+def format_text(text):
+  return f"𓆩❤️𓆪 𝑩𝒂𝒓𝒄𝒉𝒂 𝒂𝒌𝒕𝒊𝒗 𝒃𝒐‘𝒍𝒊𝒃 𝒕𝒖𝒓𝒈𝒂𝒏𝒍𝒂𝒓𝒈𝒂: {text} 🖤"
 
 
-# Internetdan qayg'uli / motivatsion so'zlarni olish
-def fetch_quote_from_internet():
-  try:
-    url = "https://api.quotable.io/random"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=5) as response:
-      data = json.loads(response.read().decode("utf-8"))
-      english_text = data.get("content", "Life is tough, but keep pushing forward.")
-      return convert_to_fancy_font(english_text)
-  except Exception:
-    fallback = [
-        "𝓢𝓲𝓷𝓸𝓿𝓵𝓪𝓻 𝓲𝓷𝓼𝓸𝓷𝓷𝓲 𝓬𝓱𝓲𝓭𝓪𝓶𝓵𝓲 𝓿𝓪 𝓴𝓾𝓬𝓱𝓵𝓲 𝓺𝓲𝓵𝓲𝓫 𝓽𝓪𝓻𝓫𝓲𝔂𝓪𝓵𝓪𝔂𝓭𝓲.",
-        "𝓨𝓸𝓵𝓰'𝓲𝔃𝓵𝓲𝓴 𝓫𝓪𝔃𝓪𝓷 𝓸'𝔃𝓲𝓷𝓰𝓷𝓲 𝓽𝓸𝓹𝓲𝓼𝓱 𝓾𝓬𝓱𝓾𝓷 𝓮𝓷𝓰 𝔂𝓪𝔁𝓼𝓱𝓲 𝓯𝓾𝓻𝓼𝓪𝓽.",
-        "𝓞'𝓽𝓶𝓲𝓼𝓱𝓷𝓲 𝓸'𝔃𝓰𝓪𝓻𝓽𝓲𝓻𝓲𝓫 𝓫𝓸'𝓵𝓶𝓪𝔂𝓭𝓲, 𝓪𝓶𝓶𝓸 𝓴𝓮𝓵𝓪𝓳𝓪𝓴 𝓱𝓪𝓵𝓲 𝓸'𝓃 𝓺𝓸'𝓵𝓲𝓷𝓰𝓭𝓪.",
-    ]
-    return random.choice(fallback)
-
-
-# Vaqtga qarab tabrik tayyorlash
-def get_time_greeting():
-  now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=5)))
-  hour = now.hour
-  if 5 <= hour < 12:
-    return "𝓧𝓪𝔂𝓻𝓵𝓲 𝓽𝓸𝓷𝓰, 𝓺𝓪𝓭𝓻𝓵𝓲 𝓭𝓸'𝓼𝓽𝓲𝓶!"
-  elif 12 <= hour < 18:
-    return "𝓚𝓾𝓷𝓲𝓷𝓰𝓲𝔃 𝔃𝓪𝔂𝓻𝓵𝓲 𝓿𝓪 𝔃𝓪𝔃𝓶𝓾𝓷𝓵𝓲 𝓸'𝓽𝓼𝓲𝓷!"
-  else:
-    return "𝓧𝓪𝔂𝓻𝓵𝓲 𝓴𝓮𝓬𝓱, 𝓸𝓼𝓸𝔂𝓲𝓼𝓱𝓽𝓪𝓵𝓲𝓴 𝓽𝓲𝓵𝓪𝔂𝓶𝓪𝓷."
-
-
-# Internetdan video havolasini olish
-def get_internet_video():
-  # Internetdagi ochiq va xavfsiz video namunalari havolalari
-  sample_videos = [
-      "https://www.w3schools.com/html/mov_bbb.mp4",
-  ]
-  return random.choice(sample_videos)
-
-
-# Botni ishga tushirish va uzluksiz himoya
-def run_bot():
-  global pending_content
+def main():
+  global last_auto_story_day
+  print(
+      "Bot 18+ jiddiy video va matn rejimida avtomatik tarzda ishga tushdi..."
+  )
   offset = 0
-  print("Bot muvaffaqiyatli ishga tushdi va himoyalandi!")
+  last_post_time = 0
+
   while True:
     try:
-      url = f"https://api.telegram.org/bot{TOKEN}/getUpdates?offset={offset}&timeout=30"
-      req = urllib.request.Request(url)
-      with urllib.request.urlopen(req, timeout=35) as response:
-        res = json.loads(response.read().decode("utf-8"))
-        if res.get("ok"):
-          for update in res.get("result", []):
-            offset = update["update_id"] + 1
+      # Kechki soat 19:30 da avtomatik VIDEO chiqarish tekshiruvi
+      now = datetime.datetime.now()
+      current_date_str = now.strftime("%Y-%m-%d")
 
-            # 1. Tugma bosilganda (Approve / Cancel)
-            if "callback_query" in update:
-              cq = update["callback_query"]
-              cq_id = cq["id"]
-              data = cq["data"]
-              chat_id = cq["message"]["chat"]["id"]
-              msg_id = cq["message"]["message_id"]
+      if (
+          now.hour == 19
+          and now.minute >= 30
+          and last_auto_story_day != current_date_str
+      ):
+        last_auto_story_day = current_date_str
 
-              if chat_id == ADMIN_ID:
-                if data == "approve":
-                  if pending_content["type"] == "text":
-                    send_telegram(
-                        "sendMessage",
-                        {
-                            "chat_id": CHANNEL_ID,
-                            "text": pending_content["content"],
-                            "parse_mode": "HTML",
-                        },
-                    )
-                  elif pending_content["type"] == "video":
-                    if pending_content.get("file_id"):
-                      send_telegram(
-                          "sendVideo",
-                          {
-                              "chat_id": CHANNEL_ID,
-                              "video": pending_content["file_id"],
-                              "caption": pending_content["content"],
-                              "parse_mode": "HTML",
-                          },
-                      )
-                    elif pending_content.get("video_url"):
-                      send_telegram(
-                          "sendVideo",
-                          {
-                              "chat_id": CHANNEL_ID,
-                              "video": pending_content["video_url"],
-                              "caption": pending_content["content"],
-                              "parse_mode": "HTML",
-                          },
-                      )
+        # 1 kun osoyishta falsafa video matni, 1 kun motivatsion kino/anime video matni
+        day_of_year = now.timetuple().tm_yday
+        if day_of_year % 2 == 0:
+          chosen_caption = random.choice(CALM_VIDEOS)
+        else:
+          chosen_caption = random.choice(MOTIVATIONAL_VIDEOS)
 
-                  send_telegram(
-                      "answerCallbackQuery",
-                      {
-                          "callback_query_id": cq_id,
-                          "text": "Kanalga muvaffaqiyatli tashlandi!",
-                      },
-                  )
-                  send_telegram(
-                      "editMessageText",
-                      {
-                          "chat_id": chat_id,
-                          "message_id": msg_id,
-                          "text": (
-                              "✅ Ruxsat berildi! Kontent kanalga"
-                              " chiqarildi."
-                          ),
-                      },
-                  )
-                elif data == "cancel":
-                  send_telegram(
-                      "answerCallbackQuery",
-                      {
-                          "callback_query_id": cq_id,
-                          "text": "Rad etildi.",
-                      },
-                  )
-                  send_telegram(
-                      "editMessageText",
-                      {
-                          "chat_id": chat_id,
-                          "message_id": msg_id,
-                          "text": (
-                              "❌ Rad etildi. Kanalga hech narsa tashlanmadi."
-                          ),
-                      },
-                  )
+        formatted_story = format_text(chosen_caption)
+        pending_content["type"] = "text"  # Yoki tayyor video bo'lsa video type qo'yiladi
+        pending_content["content"] = formatted_story
 
-            # 2. Xabar kelganda (Admin video tashlasa yoki /start yuborsa)
-            elif "message" in update:
-              msg = update["message"]
-              chat_id = msg["chat"]["id"]
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "✅ Ruxsat berish", "callback_data": "approve"},
+                {"text": "❌ Rad qilish", "callback_data": "reject"},
+            ]]
+        }
+        send_telegram(
+            "sendMessage",
+            {
+                "chat_id": ADMIN_ID,
+                "text": (
+                    "⏰ Kechki 19:30 vaqti keldi! Kunlik 18+ avtomatik"
+                    " kontent tayyor:\n\n"
+                    + formatted_story
+                    + "\n\nKanalga tashlaymizmi?"
+                ),
+                "reply_markup": json.dumps(keyboard),
+            },
+        )
 
-              if chat_id == ADMIN_ID:
-                # Agar admin o'zi botga video tashlasa
-                if "video" in msg:
-                  file_id = msg["video"]["file_id"]
-                  greeting = get_time_greeting()
-                  quote = fetch_quote_from_internet()
-                  full_text = f"{greeting}\n\n{quote}"
+      updates = send_telegram("getUpdates", {"offset": offset, "timeout": 30})
+      if updates and "result" in updates:
+        for update in updates["result"]:
+          offset = update["update_id"] + 1
 
-                  pending_content = {
-                      "type": "video",
-                      "content": full_text,
-                      "file_id": file_id,
-                  }
+          # Tugmalar bosilganda (Callback)
+          if "callback_query" in update:
+            callback = update["callback_query"]
+            cb_chat_id = callback["message"]["chat"]["id"]
+            data = callback["data"]
+            message_id = callback["message"]["message_id"]
 
-                  send_telegram(
-                      "sendVideo",
-                      {
-                          "chat_id": ADMIN_ID,
-                          "video": file_id,
-                          "caption": (
-                              "🎬 O'zingiz tashlagan video (Tasdiqlaysizmi?):\n\n"
-                              + full_text
-                          ),
-                          "parse_mode": "HTML",
-                          "reply_markup": {
-                              "inline_keyboard": [
-                                  [
-                                      {
-                                          "text": "✅ Ruxsat berish",
-                                          "callback_data": "approve",
-                                      },
-                                      {
-                                          "text": "❌ Rad etish",
-                                          "callback_data": "cancel",
-                                      },
-                                  ]
-                              ]
-                          },
-                      },
-                  )
+            if data == "approve":
+              if pending_content["type"] == "text":
+                send_telegram(
+                    "sendMessage",
+                    {
+                        "chat_id": CHANNEL_ID,
+                        "text": pending_content["content"],
+                    },
+                )
+              elif pending_content["type"] == "video":
+                send_telegram(
+                    "sendVideo",
+                    {
+                        "chat_id": CHANNEL_ID,
+                        "video": pending_content["media"],
+                        "caption": pending_content["content"],
+                    },
+                )
+              elif pending_content["type"] == "photo":
+                send_telegram(
+                    "sendPhoto",
+                    {
+                        "chat_id": CHANNEL_ID,
+                        "photo": pending_content["media"],
+                        "caption": pending_content["content"],
+                    },
+                )
 
-                # Agar admin matn yuborsa (masalan /start)
-                elif "text" in msg:
-                  text = msg["text"]
-                  if text.startswith("/start"):
-                    # Tasodifiy ravishda yo matn yoki internetdan video tanlaydi
-                    choice = random.choice(["text", "internet_video"])
-                    greeting = get_time_greeting()
-                    quote = fetch_quote_from_internet()
-                    full_text = f"{greeting}\n\n{quote}"
+              send_telegram(
+                  "sendMessage",
+                  {
+                      "chat_id": cb_chat_id,
+                      "text": (
+                          "✅ Tasdiqlandi va kanalga muvaffaqiyatli"
+                          " yuborildi!"
+                      ),
+                  },
+              )
+              last_post_time = time.time()
 
-                    if choice == "text":
-                      pending_content = {
-                          "type": "text",
-                          "content": full_text,
-                      }
-                      send_telegram(
-                          "sendMessage",
-                          {
-                              "chat_id": ADMIN_ID,
-                              "text": (
-                                  "💬 Internetdan olingan matnli post"
-                                  f" (Tasdiqlaysizmi?):\n\n{full_text}"
-                              ),
-                              "parse_mode": "HTML",
-                              "reply_markup": {
-                                  "inline_keyboard": [
-                                      [
-                                          {
-                                              "text": "✅ Ruxsat berish",
-                                              "callback_data": "approve",
-                                          },
-                                          {
-                                              "text": "❌ Rad etish",
-                                              "callback_data": "cancel",
-                                          },
-                                      ]
-                                  ]
-                              },
-                          },
-                      )
-                    else:
-                      vid_url = get_internet_video()
-                      pending_content = {
-                          "type": "video",
-                          "content": full_text,
-                          "video_url": vid_url,
-                      }
-                      send_telegram(
-                          "sendVideo",
-                          {
-                              "chat_id": ADMIN_ID,
-                              "video": vid_url,
-                              "caption": (
-                                  "🌐 Internetdan olingan video post"
-                                  f" (Tasdiqlaysizmi?):\n\n{full_text}"
-                              ),
-                              "parse_mode": "HTML",
-                              "reply_markup": {
-                                  "inline_keyboard": [
-                                      [
-                                          {
-                                              "text": "✅ Ruxsat berish",
-                                              "callback_data": "approve",
-                                          },
-                                          {
-                                              "text": "❌ Rad etish",
-                                              "callback_data": "cancel",
-                                          },
-                                      ]
-                                  ]
-                              },
-                          },
-                      )
+            elif data == "reject":
+              send_telegram(
+                  "sendMessage",
+                  {
+                      "chat_id": cb_chat_id,
+                      "text": "❌ Post rad etildi.",
+                  },
+              )
+
+            send_telegram(
+                "editMessageReplyMarkup",
+                {"chat_id": cb_chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": []}},
+            )
+
+          # Foydalanuvchidan xabar kelganda
+          if "message" in update:
+            message = update["message"]
+            chat_id = message["chat"]["id"]
+            text = message.get("text", "")
+
+            if text == "/start":
+              send_telegram(
+                  "sendMessage",
+                  {
+                      "chat_id": chat_id,
+                      "text": (
+                          "Salom! Bot 18+ jiddiy va sifatli kontent rejimida"
+                          " ishlamoqda. Menga istalgan matn, rasm yoki video"
+                          " yuboring, uni dizaynga solib, sizdan ruxsat"
+                          " so'rayman."
+                      ),
+                  },
+              )
+            elif chat_id == ADMIN_ID:
+              # 2.5 soatlik oraliq tekshiruvi (9000 soniya)
+              current_time = time.time()
+              if current_time - last_post_time < 9000 and last_post_time != 0:
+                left_minutes = int(
+                    (9000 - (current_time - last_post_time)) / 60
+                )
+                send_telegram(
+                    "sendMessage",
+                    {
+                        "chat_id": chat_id,
+                        "text": (
+                            f"⏳ Sal kuting! Har bir kontent orasida 2.5 soat"
+                            f" o'tishi kerak. Yana {left_minutes} daqiqa"
+                            " qoldi."
+                        ),
+                    },
+                )
+                continue
+
+              keyboard = {
+                  "inline_keyboard": [[
+                      {"text": "✅ Ruxsat berish", "callback_data": "approve"},
+                      {"text": "❌ Rad qilish", "callback_data": "reject"},
+                  ]]
+              }
+
+              if "text" in message:
+                formatted = format_text(message["text"])
+                pending_content["type"] = "text"
+                pending_content["content"] = formatted
+
+                send_telegram(
+                    "sendMessage",
+                    {
+                        "chat_id": ADMIN_ID,
+                        "text": (
+                            "Quyidagi xabar tayyorlandi, kanalga tashlaymizmi?\n\n"
+                            + formatted
+                        ),
+                        "reply_markup": json.dumps(keyboard),
+                    },
+                )
+
+              elif "video" in message:
+                caption = message.get("caption", "")
+                formatted_cap = format_text(caption) if caption else ""
+                pending_content["type"] = "video"
+                pending_content["media"] = message["video"]["file_id"]
+                pending_content["content"] = formatted_cap
+
+                send_telegram(
+                    "sendVideo",
+                    {
+                        "chat_id": ADMIN_ID,
+                        "video": pending_content["media"],
+                        "caption": (
+                            "Quyidagi video tayyor:\n"
+                            + formatted_cap
+                            + "\n\nKanalga tashlaymizmi?"
+                        ),
+                        "reply_markup": json.dumps(keyboard),
+                    },
+                )
+
+              elif "photo" in message:
+                caption = message.get("caption", "")
+                formatted_cap = format_text(caption) if caption else ""
+                pending_content["type"] = "photo"
+                pending_content["media"] = message["photo"][-1]["file_id"]
+                pending_content["content"] = formatted_cap
+
+                send_telegram(
+                    "sendPhoto",
+                    {
+                        "chat_id": ADMIN_ID,
+                        "photo": pending_content["media"],
+                        "caption": (
+                            "Quyidagi rasm tayyor:\n"
+                            + formatted_cap
+                            + "\n\nKanalga tashlaymizmi?"
+                        ),
+                        "reply_markup": json.dumps(keyboard),
+                    },
+                )
+
     except Exception as e:
-      print(f"Xatolik yuz berdi: {e}")
+      print(f"Xatolik tsikli: {e}")
+      time.sleep(3)
 
 
 if __name__ == "__main__":
-  run_bot()
+  main()
+
 
