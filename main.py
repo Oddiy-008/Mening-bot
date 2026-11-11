@@ -9,30 +9,6 @@ TOKEN = "9273806306:AAHC-HbWWp5hJbZXZssGY1-nk_TDNOCLGig"
 ADMIN_ID = 8824238939
 CHANNEL_ID = "@Hammasi_Yaxshi_008"
 
-# 18+ yoshdagilar uchun chiroyli osoyishta va falsafiy videolar uchun matnli sarlavhalar
-CALM_VIDEOS = [
-    (
-        "✨ Osoyishta va falsafiy parcha (18+): Ba'zida dunyoning shovqinidan"
-        " qochib, faqat o'zing bilan qolish — eng buyuk huzurdir..."
-    ),
-    (
-        "✨ Osoyishta va falsafiy parcha (18+): Haqiqiy go'zallik — bu qalbning"
-        " tinchligi va o'ylantiradigan og'ir haqiqatlardir."
-    ),
-]
-
-# 18+ yoshdagilar uchun kuchli motivatsion kino + anime videolari uchun matnli sarlavhalar
-MOTIVATIONAL_VIDEOS = [
-    (
-        "🔥 Motivatsion Kino & Anime parcha (18+): Yiqilishdan qo'rqma! Asosiysi"
-        " — har safar yiqilganda o'rningdan ikki barobar kuchli bo'lib turishdir."
-    ),
-    (
-        "🔥 Motivatsion Kino & Anime parcha (18+): Hayot senga qarshi chiqqanda,"
-        " sen unga o'z qoidalaringni o'tkazishni o'rgan."
-    ),
-]
-
 # Vaqtinchalik xotira
 pending_content = {"type": "text", "content": "", "media": None}
 last_auto_story_day = ""
@@ -49,25 +25,55 @@ def send_telegram(method, data):
     with urllib.request.urlopen(req, timeout=10) as response:
       return json.loads(response.read().decode("utf-8"))
   except Exception as e:
-    print(f"Xatolik: {e}")
+    print(f"Xatolik (Telegram API): {e}")
     return None
 
 
 def format_text(text):
-  return f"𓆩❤️𓆪 𝑩𝒂𝒓𝒄𝒉𝒂 𝒂𝒌𝒕𝒊𝒗 𝒃𝒐‘𝒍𝒊𝒃 𝒕𝒖𝒓𝒈𝒂𝒏𝒍𝒂𝒓𝒈𝒂: {text} 🖤"
+  return f"𓆩❤️𓆪 𝑩𝒂𝒓𝒄𝒉𝒂 𝒂𝒌𝒕𝒊𝒗 𝒃𝒐‘𝒍𝒊𝒃 𝒕𝒖𝒓𝒈𝒂𝒏𝒍𝒂𝒓𝒈𝒂:\n\n{text}\n\n🖤"
+
+
+# Internetdan matn yoki hikoya olib keluvchi funksiya
+def fetch_story_from_internet():
+  try:
+    # Misol uchun, ochiq va bepul hikoya/matn beruvchi API yoki saytdan ma'lumot olamiz
+    # Bu yerda misol tariqasida mashhur ochiq iqtiboslar/hikoyalar manbasi ishlatiladi
+    url = "https://api.quotable.io/random"  # Internetdan falsafiy va hayotiy fikrlar olib keladi
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+
+    with urllib.request.urlopen(req, timeout=10) as response:
+      data = json.loads(response.read().decode("utf-8"))
+      content = data.get("content", "")
+      author = data.get("author", "Noma'lum")
+      # O'zbek tiliga moslab yoki o'zgacha ko'rinishda qaytaramiz
+      return (
+          f"✨ Internetdan topilgan hayotiy hikoya/fikr (18+):\n\n\"{content}\"\n"
+          f"— Muallif: {author}"
+      )
+  except Exception as e:
+    print(f"Internetdan ma'lumot olishda xatolik: {e}")
+    # Agar internetda muammo bo'lsa, zaxiradagi matnni oladi
+    fallback_stories = [
+        "✨ Osoyishta va falsafiy parcha (18+): Ba'zida dunyoning shovqinidan"
+        " qochib, faqat o'zing bilan qolish — eng buyuk huzurdir...",
+        "🔥 Motivatsion parcha (18+): Yiqilishdan qo'rqma! Asosiysi — har"
+        " safar yiqilganda o'rningdan ikki barobar kuchli bo'lib turishdir.",
+    ]
+    return random.choice(fallback_stories)
 
 
 def main():
   global last_auto_story_day
   print(
-      "Bot 18+ jiddiy video va matn rejimida avtomatik tarzda ishga tushdi..."
+      "Bot internetdan hikoya olish va admin kontentini boshqarish rejimida"
+      " ishga tushdi..."
   )
   offset = 0
   last_post_time = 0
 
   while True:
     try:
-      # Kechki soat 19:30 da avtomatik VIDEO chiqarish tekshiruvi
+      # Kechki soat 19:30 da internetdan avtomatik hikoya/matn olish tekshiruvi
       now = datetime.datetime.now()
       current_date_str = now.strftime("%Y-%m-%d")
 
@@ -78,15 +84,11 @@ def main():
       ):
         last_auto_story_day = current_date_str
 
-        # 1 kun osoyishta falsafa video matni, 1 kun motivatsion kino/anime video matni
-        day_of_year = now.timetuple().tm_yday
-        if day_of_year % 2 == 0:
-          chosen_caption = random.choice(CALM_VIDEOS)
-        else:
-          chosen_caption = random.choice(MOTIVATIONAL_VIDEOS)
+        # 1. INTERNETDAN YANGI HIKOYA/MATN OLIB KELISH
+        raw_internet_story = fetch_story_from_internet()
+        formatted_story = format_text(raw_internet_story)
 
-        formatted_story = format_text(chosen_caption)
-        pending_content["type"] = "text"  # Yoki tayyor video bo'lsa video type qo'yiladi
+        pending_content["type"] = "text"
         pending_content["content"] = formatted_story
 
         keyboard = {
@@ -100,7 +102,7 @@ def main():
             {
                 "chat_id": ADMIN_ID,
                 "text": (
-                    "⏰ Kechki 19:30 vaqti keldi! Kunlik 18+ avtomatik"
+                    "⏰ Kechki 19:30! Internetdan topilgan kunlik avtomatik"
                     " kontent tayyor:\n\n"
                     + formatted_story
                     + "\n\nKanalga tashlaymizmi?"
@@ -172,10 +174,14 @@ def main():
 
             send_telegram(
                 "editMessageReplyMarkup",
-                {"chat_id": cb_chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": []}},
+                {
+                    "chat_id": cb_chat_id,
+                    "message_id": message_id,
+                    "reply_markup": {"inline_keyboard": []},
+                },
             )
 
-          # Foydalanuvchidan xabar kelganda
+          # Foydalanuvchidan / Admindan xabar kelganda
           if "message" in update:
             message = update["message"]
             chat_id = message["chat"]["id"]
@@ -187,10 +193,9 @@ def main():
                   {
                       "chat_id": chat_id,
                       "text": (
-                          "Salom! Bot 18+ jiddiy va sifatli kontent rejimida"
-                          " ishlamoqda. Menga istalgan matn, rasm yoki video"
-                          " yuboring, uni dizaynga solib, sizdan ruxsat"
-                          " so'rayman."
+                          "Salom! Bot internetdan hikoya qidirish va shaxsiy"
+                          " konterni moderatsiya qilish rejimida ishlamoqda."
+                          " Menga istalgan matn, rasm yoki video yuboring."
                       ),
                   },
               )
